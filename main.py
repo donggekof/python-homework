@@ -1,4 +1,4 @@
-from datetime import datetime
+from datetime import datetime, timedelta
 from logger_config import get_logger
 from run_query import run_query
 from apscheduler.schedulers.blocking import BlockingScheduler
@@ -7,11 +7,19 @@ logger = get_logger("task.log")
 
 # 来个备注提交下试试
 
-query = """
-SELECT *
+# 计算昨天的日期 (格式: YYYY-MM-DD)
+yesterday = (datetime.now() - timedelta(days=1)).strftime('%Y-%m-%d')
+
+query = f"""
+SELECT cast(sum(success) as double)/count(1) as success_rate,sum(success) as total_success,count(1) as total_matches,matchid,logymd
 FROM ml_ods.matchserver_match_end
-WHERE logymd = '2026-01-20'
-limit 1000
+WHERE logymd = '{yesterday}'
+and matchid < 50
+and pvptype = 2
+and quit_reason != 15
+group by matchid,logymd
+order by matchid
+limit 100
 """
 
 
@@ -41,16 +49,16 @@ def main():
 
 def start_scheduler():
     """
-    启动定时调度器 - 每两分钟执行一次
+    启动定时调度器 - 每分钟执行一次
     """
     scheduler = BlockingScheduler()
     
     # 添加定时任务：每两分钟执行一次 main 函数
-    scheduler.add_job(main, 'interval', minutes=2)
+    scheduler.add_job(main, 'interval', minutes=1)
     
     logger.info("=" * 60)
     logger.info("定时调度器已启动")
-    logger.info("任务: 每两分钟执行一次查询")
+    logger.info("任务: 每分钟执行一次查询")
     logger.info("=" * 60)
     
     try:
