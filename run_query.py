@@ -77,15 +77,15 @@ def run_spark_query(sql: str, engine_type: str = 'JDBC', incremental_collect: bo
         'spark.dynamicAllocation.maxExecutors': '60'
     }
     if incremental_collect:
-        configuration['kyuubi.operation.incremental.collect'] = incremental_collect
+        configuration['kyuubi.operation.incremental.collect'] = incremental_collect # type: ignore
     
     db_config = get_db_config("spark")
     cursor = hive.connect(
-        host=db_config['host'], port=db_config['port'],
-        username=db_config['username'],
+        host=db_config['host'], port=db_config['port'], # type: ignore
+        username=db_config['username'], # type: ignore
         auth='LDAP',
         configuration=configuration,
-        password=db_config['password']).cursor()
+        password=db_config['password']).cursor() # type: ignore
 
     cursor.execute(sql, async_=True)
 
@@ -101,7 +101,7 @@ def run_spark_query(sql: str, engine_type: str = 'JDBC', incremental_collect: bo
         status = cursor.poll().operationState
 
     col_name = []
-    for i in cursor.description:
+    for i in cursor.description: # type: ignore
         col_name.append(i[0])
 
     data_pd = pd.DataFrame(cursor.fetchall(), columns=col_name)
